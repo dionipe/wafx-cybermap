@@ -1,0 +1,734 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>WAFX — CyberThreat Live Map</title>
+
+<!-- Leaflet CSS -->
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin=""/>
+<!-- Google Fonts -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Rajdhani:wght@400;600;700&display=swap" rel="stylesheet">
+
+<style>
+/* ── Reset & base ──────────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --bg:       #050a14;
+  --panel:    rgba(5,15,30,0.88);
+  --border:   rgba(0,212,255,0.22);
+  --accent:   #00d4ff;
+  --accent2:  #00ff99;
+  --dim:      rgba(255,255,255,0.45);
+  --font-mono: 'Share Tech Mono', monospace;
+  --font-ui:   'Rajdhani', sans-serif;
+  --oas:  #f59e0b;
+  --mav:  #3b82f6;
+  --ids:  #10b981;
+  --vul:  #ef4444;
+  --rmw:  #8b5cf6;
+}
+
+html, body {
+  height: 100%;
+  background: var(--bg);
+  color: #e2e8f0;
+  font-family: var(--font-ui);
+  overflow: hidden;
+}
+
+/* ── Header ────────────────────────────────────────── */
+#header {
+  position: fixed; top: 0; left: 0; right: 0; height: 58px;
+  background: rgba(5,10,22,0.96);
+  border-bottom: 1px solid var(--border);
+  display: flex; align-items: center; gap: 0; z-index: 1000;
+  backdrop-filter: blur(8px);
+}
+
+.hd-brand {
+  display: flex; align-items: center; gap: 10px;
+  padding: 0 20px;
+  border-right: 1px solid var(--border);
+  height: 100%;
+  min-width: 180px;
+}
+.hd-brand svg { flex-shrink: 0; }
+.hd-brand-name {
+  font-family: var(--font-ui); font-weight: 700; font-size: 18px;
+  letter-spacing: 0.08em; color: #fff;
+}
+.hd-brand-name em { color: var(--accent); font-style: normal; }
+
+.hd-title {
+  display: flex; flex-direction: column; justify-content: center;
+  padding: 0 22px; flex: 1;
+  border-right: 1px solid var(--border);
+  height: 100%;
+}
+.hd-title-main {
+  font-family: var(--font-mono); font-size: 13px;
+  color: var(--accent); letter-spacing: 0.16em; line-height: 1;
+}
+.hd-title-sub {
+  font-size: 10px; color: var(--dim); letter-spacing: 0.14em; margin-top: 3px;
+}
+
+.hd-total {
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  padding: 0 24px;
+  border-right: 1px solid var(--border);
+  height: 100%;
+}
+.hd-total-label { font-size: 9px; color: var(--dim); letter-spacing: 0.16em; text-transform: uppercase; }
+.hd-total-count {
+  font-family: var(--font-mono); font-size: 22px;
+  color: var(--accent2); line-height: 1.1; letter-spacing: 0.04em;
+}
+
+.hd-clock {
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  padding: 0 22px;
+  height: 100%;
+}
+.hd-clock-time {
+  font-family: var(--font-mono); font-size: 18px; color: #fff;
+}
+.hd-clock-date { font-size: 10px; color: var(--dim); letter-spacing: 0.1em; margin-top: 1px; }
+
+.hd-status {
+  display: flex; align-items: center; gap: 8px;
+  padding: 0 20px; margin-left: auto;
+  border-left: 1px solid var(--border);
+  height: 100%;
+}
+.hd-status-dot {
+  width: 8px; height: 8px; border-radius: 50%; background: var(--accent2);
+  box-shadow: 0 0 6px var(--accent2);
+  animation: pulse-dot 1.8s ease-in-out infinite;
+}
+@keyframes pulse-dot {
+  0%,100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.5; transform: scale(0.75); }
+}
+.hd-status-text { font-family: var(--font-mono); font-size: 10px; color: var(--accent2); letter-spacing: 0.1em; }
+
+/* ── Map ───────────────────────────────────────────── */
+#map {
+  position: fixed; top: 58px; left: 0; right: 0; bottom: 0;
+  z-index: 1;
+}
+
+/* Override Leaflet dark map texts */
+.leaflet-container { background: #050a14 !important; }
+
+/* ── Arc canvas overlay ────────────────────────────── */
+#arc-canvas {
+  position: absolute; top: 0; left: 0;
+  pointer-events: none; z-index: 500;
+}
+
+/* ── Stats panel ───────────────────────────────────── */
+#stats-panel {
+  position: fixed; top: 78px; left: 18px;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 14px 18px;
+  z-index: 700;
+  min-width: 210px;
+  backdrop-filter: blur(10px);
+  box-shadow: 0 4px 32px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.04);
+}
+
+.sp-header {
+  font-family: var(--font-mono); font-size: 9px; color: var(--accent);
+  letter-spacing: 0.2em; text-transform: uppercase; margin-bottom: 12px;
+  border-bottom: 1px solid var(--border); padding-bottom: 8px;
+}
+
+.sp-row {
+  display: flex; align-items: center; gap: 10px;
+  margin-bottom: 10px; cursor: default;
+}
+.sp-row:last-child { margin-bottom: 0; }
+
+.sp-badge {
+  font-family: var(--font-mono); font-size: 9px;
+  padding: 2px 6px; border-radius: 3px;
+  font-weight: bold; letter-spacing: 0.06em;
+  opacity: 0.92; flex-shrink: 0; min-width: 36px; text-align: center;
+}
+
+.sp-name { font-size: 11px; color: var(--dim); flex: 1; }
+.sp-count {
+  font-family: var(--font-mono); font-size: 17px; color: #fff;
+  min-width: 56px; text-align: right; letter-spacing: 0.03em;
+}
+
+.sp-bar-wrap {
+  height: 2px; background: rgba(255,255,255,0.08); border-radius: 2px;
+  margin-top: -6px; margin-bottom: 8px; margin-left: 46px;
+}
+.sp-bar { height: 100%; border-radius: 2px; transition: width 0.6s ease; }
+
+/* ── Feed panel ────────────────────────────────────── */
+#feed-panel {
+  position: fixed; bottom: 14px; right: 14px;
+  width: 390px; max-height: 260px;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  z-index: 700;
+  display: flex; flex-direction: column;
+  overflow: hidden;
+  backdrop-filter: blur(10px);
+  box-shadow: 0 4px 32px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.04);
+}
+
+.fp-header {
+  font-family: var(--font-mono); font-size: 9px; color: var(--accent);
+  letter-spacing: 0.2em; text-transform: uppercase;
+  padding: 10px 14px 8px;
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+}
+
+#feed-list {
+  flex: 1; overflow-y: auto; padding: 0;
+  scroll-behavior: smooth;
+}
+
+#feed-list::-webkit-scrollbar { width: 4px; }
+#feed-list::-webkit-scrollbar-track { background: transparent; }
+#feed-list::-webkit-scrollbar-thumb { background: rgba(0,212,255,0.25); border-radius: 2px; }
+
+.feed-item {
+  display: grid;
+  grid-template-columns: 36px 72px 1fr minmax(0,140px);
+  align-items: center; gap: 8px;
+  padding: 7px 14px;
+  border-bottom: 1px solid rgba(255,255,255,0.04);
+  animation: slide-in 0.35s ease;
+}
+.feed-item:last-child { border-bottom: none; }
+
+@keyframes slide-in {
+  from { opacity: 0; transform: translateX(20px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+
+.fi-badge {
+  font-family: var(--font-mono); font-size: 8px; font-weight: bold;
+  padding: 2px 5px; border-radius: 3px; text-align: center;
+  opacity: 0.9;
+}
+.fi-time { font-family: var(--font-mono); font-size: 10px; color: var(--dim); }
+.fi-ip   { font-family: var(--font-mono); font-size: 10px; color: #c9d4e8; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.fi-country { font-size: 11px; color: var(--dim); text-align: right; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+/* ── Target marker pulse ───────────────────────────── */
+.target-pulse {
+  width: 18px; height: 18px; border-radius: 50%;
+  border: 2px solid var(--accent2);
+  background: rgba(0,255,153,0.25);
+  box-shadow: 0 0 10px var(--accent2), 0 0 30px rgba(0,255,153,0.3);
+  animation: target-anim 2s ease-in-out infinite;
+}
+@keyframes target-anim {
+  0%,100% { transform: scale(1); opacity: 1; }
+  50% { transform: scale(1.4); opacity: 0.6; }
+}
+
+/* ── Hover tooltip ──────────────────────────────────── */
+.leaflet-tooltip {
+  background: rgba(5,15,30,0.92) !important;
+  border: 1px solid var(--border) !important;
+  color: #e2e8f0 !important;
+  font-family: var(--font-mono) !important;
+  font-size: 11px !important;
+  box-shadow: none !important;
+  border-radius: 6px !important;
+}
+
+/* ── Responsive ─────────────────────────────────────── */
+@media (max-width: 800px) {
+  #stats-panel { display: none; }
+  #feed-panel { width: calc(100vw - 28px); right: 14px; left: 14px; }
+}
+</style>
+</head>
+<body>
+
+<!-- ─── Header ─────────────────────────────────────────────────── -->
+<div id="header">
+  <div class="hd-brand">
+    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"
+         fill="none" stroke="#00d4ff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+    </svg>
+    <span class="hd-brand-name">Waf<em>X</em></span>
+  </div>
+
+  <div class="hd-title">
+    <div class="hd-title-main">CYBERTHREAT LIVE MAP</div>
+    <div class="hd-title-sub">WAFX SECURITY INTELLIGENCE PLATFORM</div>
+  </div>
+
+  <div class="hd-total">
+    <div class="hd-total-label">Total Attacks Today</div>
+    <div class="hd-total-count" id="cnt-total">0</div>
+  </div>
+
+  <div class="hd-clock">
+    <div class="hd-clock-time" id="clock-time">00:00:00</div>
+    <div class="hd-clock-date" id="clock-date">--</div>
+  </div>
+
+  <div class="hd-status">
+    <div class="hd-status-dot"></div>
+    <span class="hd-status-text">SYSTEM ONLINE · DETECTING THREATS</span>
+  </div>
+</div>
+
+<!-- ─── Map ────────────────────────────────────────────────────── -->
+<div id="map">
+  <canvas id="arc-canvas"></canvas>
+</div>
+
+<!-- ─── Stats Panel ────────────────────────────────────────────── -->
+<div id="stats-panel">
+  <div class="sp-header">&#9632; Real-Time Detection</div>
+
+  <div class="sp-row">
+    <span class="sp-badge" style="background:rgba(245,158,11,0.18);color:#f59e0b;border:1px solid rgba(245,158,11,0.3)">OAS</span>
+    <span class="sp-name">On-Access Scan</span>
+    <span class="sp-count" id="cnt-oas">0</span>
+  </div>
+  <div class="sp-bar-wrap"><div class="sp-bar" id="bar-oas" style="background:#f59e0b;width:0%"></div></div>
+
+  <div class="sp-row">
+    <span class="sp-badge" style="background:rgba(59,130,246,0.18);color:#3b82f6;border:1px solid rgba(59,130,246,0.3)">MAV</span>
+    <span class="sp-name">Mail Anti Virus</span>
+    <span class="sp-count" id="cnt-mav">0</span>
+  </div>
+  <div class="sp-bar-wrap"><div class="sp-bar" id="bar-mav" style="background:#3b82f6;width:0%"></div></div>
+
+  <div class="sp-row">
+    <span class="sp-badge" style="background:rgba(16,185,129,0.18);color:#10b981;border:1px solid rgba(16,185,129,0.3)">IDS</span>
+    <span class="sp-name">Intrusion Detection</span>
+    <span class="sp-count" id="cnt-ids">0</span>
+  </div>
+  <div class="sp-bar-wrap"><div class="sp-bar" id="bar-ids" style="background:#10b981;width:0%"></div></div>
+
+  <div class="sp-row">
+    <span class="sp-badge" style="background:rgba(239,68,68,0.18);color:#ef4444;border:1px solid rgba(239,68,68,0.3)">VUL</span>
+    <span class="sp-name">Vulnerability Scan</span>
+    <span class="sp-count" id="cnt-vul">0</span>
+  </div>
+  <div class="sp-bar-wrap"><div class="sp-bar" id="bar-vul" style="background:#ef4444;width:0%"></div></div>
+
+  <div class="sp-row">
+    <span class="sp-badge" style="background:rgba(139,92,246,0.18);color:#8b5cf6;border:1px solid rgba(139,92,246,0.3)">RMW</span>
+    <span class="sp-name">Ransomware</span>
+    <span class="sp-count" id="cnt-rmw">0</span>
+  </div>
+  <div class="sp-bar-wrap"><div class="sp-bar" id="bar-rmw" style="background:#8b5cf6;width:0%"></div></div>
+</div>
+
+<!-- ─── Feed Panel ─────────────────────────────────────────────── -->
+<div id="feed-panel">
+  <div class="fp-header">&#9632; Global Attack Feed</div>
+  <div id="feed-list"></div>
+</div>
+
+<!-- ─── Scripts ───────────────────────────────────────────────── -->
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
+<script>
+'use strict';
+
+// ── Constants ──────────────────────────────────────────────────────
+const TARGET_LAT =  -6.2146;
+const TARGET_LNG = 106.8451;
+const MAX_ARCS   = 80;
+const MAX_FEED   = 60;
+
+const TYPE_COLOR = {
+  OAS: '#f59e0b',
+  MAV: '#3b82f6',
+  IDS: '#10b981',
+  VUL: '#ef4444',
+  RMW: '#8b5cf6',
+};
+
+// ── Map setup ──────────────────────────────────────────────────────
+const map = L.map('map', {
+  center: [20, 25],
+  zoom: 2,
+  minZoom: 1,
+  maxZoom: 8,
+  zoomControl: false,
+  attributionControl: false,
+});
+
+// CartoDB Dark Matter – free, no key required
+L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+  attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/">CARTO</a>',
+  subdomains: 'abcd',
+  maxZoom: 19,
+}).addTo(map);
+
+L.control.zoom({ position: 'bottomleft' }).addTo(map);
+
+// Target server marker (Jakarta)
+const targetIcon = L.divIcon({
+  className: '',
+  html: '<div class="target-pulse"></div>',
+  iconSize: [18, 18],
+  iconAnchor: [9, 9],
+});
+L.marker([TARGET_LAT, TARGET_LNG], { icon: targetIcon })
+  .addTo(map)
+  .bindTooltip('WAFX Server · Jakarta', { permanent: false, direction: 'top' });
+
+// ── Canvas arc layer ───────────────────────────────────────────────
+const canvas = document.getElementById('arc-canvas');
+const ctx    = canvas.getContext('2d');
+const arcs   = [];
+
+// Sync canvas size with map container
+function resizeCanvas() {
+  const s = map.getSize();
+  canvas.width  = s.x;
+  canvas.height = s.y;
+}
+resizeCanvas();
+map.on('resize', resizeCanvas);
+
+// Reposition canvas on map move / zoom (Leaflet shifts the pane)
+function repositionCanvas() {
+  const pane = map.getPanes().overlayPane;
+  canvas.style.left = '0px';
+  canvas.style.top  = '0px';
+}
+map.on('movestart zoom', repositionCanvas);
+
+function addArc(ev) {
+  if (!ev.src_lat && !ev.src_lng) return; // no geo
+  if (arcs.length >= MAX_ARCS) arcs.shift();
+  arcs.push({
+    srcLat: ev.src_lat,
+    srcLng: ev.src_lng,
+    dstLat: TARGET_LAT,
+    dstLng: TARGET_LNG,
+    color:  ev.color || '#00d4ff',
+    birth:  Date.now(),
+    travel: 2200,  // ms to draw the arc
+    hold:   800,   // ms to hold at full
+    fade:   1200,  // ms to fade out
+  });
+}
+
+function getBezierPt(t, x0, y0, cx, cy, x1, y1) {
+  const mt = 1 - t;
+  return {
+    x: mt*mt*x0 + 2*mt*t*cx + t*t*x1,
+    y: mt*mt*y0 + 2*mt*t*cy + t*t*y1,
+  };
+}
+
+function drawArcs() {
+  resizeCanvas();
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+  const now = Date.now();
+
+  for (let i = arcs.length - 1; i >= 0; i--) {
+    const a  = arcs[i];
+    const age = now - a.birth;
+    const total = a.travel + a.hold + a.fade;
+
+    if (age > total) { arcs.splice(i, 1); continue; }
+
+    // Progress of drawing (0 → 1 during travel phase)
+    const drawProgress = Math.min(age / a.travel, 1);
+
+    // Opacity (1 during travel+hold, then fades)
+    const fadeStart = a.travel + a.hold;
+    const opacity   = age > fadeStart
+      ? 1 - (age - fadeStart) / a.fade
+      : 1;
+
+    // Convert lat/lng to container pixel coords
+    const srcPx = map.latLngToContainerPoint([a.srcLat, a.srcLng]);
+    const dstPx = map.latLngToContainerPoint([a.dstLat, a.dstLng]);
+
+    if (!srcPx || !dstPx) continue;
+
+    const dx   = dstPx.x - srcPx.x;
+    const dy   = dstPx.y - srcPx.y;
+    const dist = Math.sqrt(dx*dx + dy*dy);
+    const lift = Math.min(dist * 0.42, 220);
+
+    const cpX = (srcPx.x + dstPx.x) / 2;
+    const cpY = (srcPx.y + dstPx.y) / 2 - lift;
+
+    // Draw partial bezier arc
+    const steps   = 64;
+    const endStep = Math.floor(steps * drawProgress);
+
+    ctx.save();
+    ctx.globalAlpha = opacity;
+    ctx.shadowColor = a.color;
+    ctx.shadowBlur  = 10;
+    ctx.strokeStyle = a.color;
+    ctx.lineWidth   = 1.6;
+    ctx.beginPath();
+    let first = true;
+    for (let s = 0; s <= endStep; s++) {
+      const t  = s / steps;
+      const pt = getBezierPt(t, srcPx.x, srcPx.y, cpX, cpY, dstPx.x, dstPx.y);
+      if (first) { ctx.moveTo(pt.x, pt.y); first = false; }
+      else        ctx.lineTo(pt.x, pt.y);
+    }
+    ctx.stroke();
+
+    // Moving head dot
+    if (drawProgress < 1) {
+      const hp = getBezierPt(drawProgress, srcPx.x, srcPx.y, cpX, cpY, dstPx.x, dstPx.y);
+      ctx.beginPath();
+      ctx.arc(hp.x, hp.y, 3.5, 0, Math.PI * 2);
+      ctx.fillStyle = a.color;
+      ctx.shadowBlur = 16;
+      ctx.fill();
+    }
+
+    // Source origin dot
+    ctx.beginPath();
+    ctx.arc(srcPx.x, srcPx.y, 3.5, 0, Math.PI * 2);
+    ctx.fillStyle = a.color;
+    ctx.shadowBlur = 12;
+    ctx.fill();
+
+    ctx.restore();
+  }
+
+  requestAnimationFrame(drawArcs);
+}
+drawArcs();
+
+// ── Stats ──────────────────────────────────────────────────────────
+// Display is driven entirely by incrementStat() so counters count up
+// one-by-one as each event animates. Server stats events are only used
+// to sync total after reconnect / during live phase.
+let stats = { total: 0, oas: 0, mav: 0, ids: 0, vul: 0, rmw: 0 };
+
+function renderStats() {
+  setEl('cnt-total', fmtNum(stats.total));
+  setEl('cnt-oas',   fmtNum(stats.oas));
+  setEl('cnt-mav',   fmtNum(stats.mav));
+  setEl('cnt-ids',   fmtNum(stats.ids));
+  setEl('cnt-vul',   fmtNum(stats.vul));
+  setEl('cnt-rmw',   fmtNum(stats.rmw));
+  const mx = Math.max(stats.oas, stats.mav, stats.ids, stats.vul, stats.rmw, 1);
+  setWidth('bar-oas', stats.oas / mx * 100);
+  setWidth('bar-mav', stats.mav / mx * 100);
+  setWidth('bar-ids', stats.ids / mx * 100);
+  setWidth('bar-vul', stats.vul / mx * 100);
+  setWidth('bar-rmw', stats.rmw / mx * 100);
+}
+
+function incrementStat(type) {
+  stats.total++;
+  if (type === 'OAS') stats.oas++;
+  else if (type === 'MAV') stats.mav++;
+  else if (type === 'IDS') stats.ids++;
+  else if (type === 'VUL') stats.vul++;
+  else if (type === 'RMW') stats.rmw++;
+  renderStats();
+}
+
+// ── Feed ───────────────────────────────────────────────────────────
+const feedList = document.getElementById('feed-list');
+
+function addFeedItem(ev) {
+  const color = ev.color || '#00d4ff';
+  const row   = document.createElement('div');
+  row.className = 'feed-item';
+  row.innerHTML =
+    `<span class="fi-badge" style="background:${hexToRgba(color,0.15)};color:${color};border:1px solid ${hexToRgba(color,0.35)}">${escHtml(ev.type)}</span>` +
+    `<span class="fi-time">${escHtml(ev.time)}</span>` +
+    `<span class="fi-ip">${escHtml(ev.src_ip)}</span>` +
+    `<span class="fi-country">${escHtml(ev.src_country || ev.src_cc || '—')}</span>`;
+  feedList.prepend(row);
+  while (feedList.childElementCount > MAX_FEED) {
+    feedList.removeChild(feedList.lastElementChild);
+  }
+}
+
+// ── Playback engine ────────────────────────────────────────────────
+// phase: 'collect' → 'play' → 'live' → loop ('play' again via loop)
+//
+//  collect : buffer incoming history events (age > HISTORY_AGE seconds)
+//  play    : animate buffered events 1-by-1, increment counters + feed
+//  live    : events arrive in real-time → display immediately
+//  loop    : after live phase is quiet, re-animate history arcs
+//            (arc + counter only, no feed duplicate)
+
+const EVENT_DELAY    = 320;   // ms between each animated event
+const LOOP_PAUSE     = 2200;  // ms pause before loop restarts
+const HISTORY_AGE    = 60;    // seconds – events older than this are "history"
+const COLLECT_SETTLE = 450;   // ms of silence before we decide history dump is done
+
+let historyBuf   = [];
+let liveQueue    = [];
+let phase        = 'collect';
+let playIdx      = 0;
+let playTimer    = null;
+let collectTimer = null;
+
+// Called for every incoming 'threat' SSE event
+function onEvent(ev) {
+  const age = (Date.now() / 1000) - ev.unix;
+
+  if (phase === 'collect') {
+    if (age > HISTORY_AGE) {
+      // Still part of history dump
+      historyBuf.push(ev);
+      clearTimeout(collectTimer);
+      collectTimer = setTimeout(startPlay, COLLECT_SETTLE);
+    } else {
+      // A live event arrived before we even started playback
+      clearTimeout(collectTimer);
+      startPlay();           // flush whatever we have
+      liveQueue.push(ev);    // will be drained when play finishes
+    }
+    return;
+  }
+
+  if (phase === 'play' || phase === 'loop') {
+    // Buffer live events while we're animating history / loop
+    if (age <= HISTORY_AGE) liveQueue.push(ev);
+    return;
+  }
+
+  // phase === 'live'
+  displayFull(ev);
+}
+
+// Start animating the buffered history events one by one
+function startPlay() {
+  if (phase !== 'collect') return;
+  phase  = 'play';
+  playIdx = 0;
+  tick();
+}
+
+function tick() {
+  clearTimeout(playTimer);
+
+  if (phase === 'play' || phase === 'loop') {
+    if (playIdx < historyBuf.length) {
+      // Animate one event
+      const ev = historyBuf[playIdx++];
+      if (phase === 'play') {
+        displayFull(ev);       // arc + feed + counter
+      } else {
+        displayArcOnly(ev);    // arc + counter (no feed duplicate during loop)
+      }
+      playTimer = setTimeout(tick, EVENT_DELAY);
+    } else {
+      // Done with this pass
+      phase = 'live';
+      const q = liveQueue.splice(0);
+      q.forEach(ev => displayFull(ev));
+      scheduleLoop();
+    }
+  }
+}
+
+function scheduleLoop() {
+  playTimer = setTimeout(startLoop, LOOP_PAUSE);
+}
+
+function startLoop() {
+  if (historyBuf.length === 0) { scheduleLoop(); return; }
+  phase   = 'loop';
+  playIdx = 0;
+  tick();
+}
+
+// Show arc + feed item + increment counter  (first-time display)
+function displayFull(ev) {
+  addArc(ev);
+  addFeedItem(ev);
+  incrementStat(ev.type);
+}
+
+// Show arc + increment counter only  (loop re-play)
+function displayArcOnly(ev) {
+  addArc(ev);
+  incrementStat(ev.type);
+}
+
+// ── SSE connection ─────────────────────────────────────────────────
+let sseRetry = 1000;
+
+function connectSSE() {
+  const sse = new EventSource('/api/events');
+
+  // Ignore the initial stats snapshot – counters are driven by animation.
+  // Only accept stats updates once we are in live phase (no rewrite needed).
+  sse.addEventListener('stats', () => {});
+
+  sse.addEventListener('threat', e => {
+    try { onEvent(JSON.parse(e.data)); } catch(_) {}
+  });
+
+  sse.onerror = () => {
+    sse.close();
+    setTimeout(connectSSE, sseRetry);
+    sseRetry = Math.min(sseRetry * 1.5, 15000);
+  };
+
+  sse.onopen = () => { sseRetry = 1000; };
+}
+
+connectSSE();
+
+// ── Clock ──────────────────────────────────────────────────────────
+function tickClock() {
+  const now = new Date();
+  setEl('clock-time', pad2(now.getHours()) + ':' + pad2(now.getMinutes()) + ':' + pad2(now.getSeconds()));
+  setEl('clock-date', now.toLocaleDateString('en-US', { weekday:'short', day:'2-digit', month:'short', year:'numeric' }));
+}
+tickClock();
+setInterval(tickClock, 1000);
+
+// ── Helpers ────────────────────────────────────────────────────────
+function setEl(id, val) {
+  const el = document.getElementById(id);
+  if (el) el.textContent = val;
+}
+function setWidth(id, pct) {
+  const el = document.getElementById(id);
+  if (el) el.style.width = pct + '%';
+}
+function pad2(n) { return String(n).padStart(2, '0'); }
+function fmtNum(n) {
+  return Number(n).toLocaleString('en-US');
+}
+function escHtml(s) {
+  return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+function hexToRgba(hex, alpha) {
+  const r = parseInt(hex.slice(1,3),16);
+  const g = parseInt(hex.slice(3,5),16);
+  const b = parseInt(hex.slice(5,7),16);
+  return `rgba(${r},${g},${b},${alpha})`;
+}
+</script>
+</body>
+</html>
