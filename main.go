@@ -23,7 +23,7 @@ const (
 	auditLogBakPath = "/var/log/nginx/coraza_audit.log.1"
 	listenAddr      = ":8085"
 
-	// Target server location – Jakarta, Indonesia (103.142.214.60)
+	// Target server location – Jakarta, Indonesia (WAFX HQ) – used for arc drawing on the map. Can be changed to
 	targetLat = -6.2146
 	targetLng = 106.8451
 
