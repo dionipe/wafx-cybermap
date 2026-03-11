@@ -1,5 +1,8 @@
 # WAFX CyberThreat Live Map
 
+🌐 **Live:** [https://ctmap.indobsd.id](https://ctmap.indobsd.id)  
+🛡️ **WAFX Platform:** [https://wafx.indobsd.id](https://wafx.indobsd.id)
+
 Visualisasi serangan siber secara real-time berbasis peta dunia interaktif. Data diambil langsung dari log audit **WAFX-NGINX Coraza WAF** yang sedang berjalan, kemudian ditampilkan sebagai animasi arc balistik dari lokasi penyerang menuju server target.
 
 ```
@@ -233,9 +236,19 @@ journalctl -u wafx-cybermap -f
 
 ## Akses
 
+### Publik
+
 | URL | Keterangan |
 |---|---|
-| `http://localhost:8083/` | Via Nginx (port standar) |
+| [https://ctmap.indobsd.id](https://ctmap.indobsd.id) | **Live map** (production) |
+| [https://wafx.indobsd.id](https://wafx.indobsd.id) | **WAFX Security Platform** |
+
+### Lokal / Internal
+
+| URL | Keterangan |
+|---|---|
+| `http://localhost:8083/` | Via Nginx reverse proxy (port standar) |
+| `http://localhost:8083/cyber-map.html` | Alias path |
 | `http://localhost:8085/` | Langsung ke Go service |
 | `http://localhost:8085/api/stats` | JSON stats (total, per kategori) |
 | `http://localhost:8085/api/events` | SSE stream (text/event-stream) |
