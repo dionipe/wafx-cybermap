@@ -39,27 +39,60 @@ const (
 type ThreatType string
 
 const (
-	ThreatOAS ThreatType = "OAS" // On-Access Scan – LFI/RFI/file access
-	ThreatMAV ThreatType = "MAV" // Mail Anti Virus – mail/SMTP attacks
-	ThreatIDS ThreatType = "IDS" // Intrusion Detection – scanning/probing
-	ThreatVUL ThreatType = "VUL" // Vulnerability Scan – SQLi/XSS/injection
-	ThreatRMW ThreatType = "RMW" // Ransomware – high-severity crypto patterns
+	ThreatME   ThreatType = "ME"   // Method Enforcement – invalid/disallowed HTTP methods
+	ThreatSCAN ThreatType = "SCAN" // Scanner Detection – security scanners/probing tools
+	ThreatPE   ThreatType = "PE"   // Protocol Enforcement – HTTP protocol violations
+	ThreatPA   ThreatType = "PA"   // Protocol Attack – HTTP-level attack vectors
+	ThreatMP   ThreatType = "MP"   // Multipart Attack – MIME/multipart abuse
+	ThreatLFI  ThreatType = "LFI"  // Local File Inclusion – path traversal & LFI
+	ThreatRFI  ThreatType = "RFI"  // Remote File Inclusion – remote file abuse
+	ThreatRCE  ThreatType = "RCE"  // Remote Code Execution – code/command injection
+	ThreatPHP  ThreatType = "PHP"  // PHP Attack – PHP-specific injection attacks
+	ThreatGA   ThreatType = "GA"   // Generic Attack – unclassified/mixed threats
+	ThreatXSS  ThreatType = "XSS"  // Cross-Site Scripting – XSS attacks
+	ThreatSQLI ThreatType = "SQLI" // SQL Injection – SQLi attacks
+	ThreatSF   ThreatType = "SF"   // Session Fixation – session hijacking
+	ThreatJAVA ThreatType = "JAVA" // Java Attack – Log4Shell/Java exploits
+	ThreatDL   ThreatType = "DL"   // Data Leakage – information disclosure
+	ThreatWSH  ThreatType = "WSH"  // Web Shells – webshell upload/execution
 )
 
 var threatColor = map[ThreatType]string{
-	ThreatOAS: "#f59e0b", // amber
-	ThreatMAV: "#3b82f6", // blue
-	ThreatIDS: "#10b981", // green
-	ThreatVUL: "#ef4444", // red
-	ThreatRMW: "#8b5cf6", // purple
+	ThreatME:   "#f97316", // orange
+	ThreatSCAN: "#22c55e", // green
+	ThreatPE:   "#06b6d4", // cyan
+	ThreatPA:   "#3b82f6", // blue
+	ThreatMP:   "#84cc16", // lime
+	ThreatLFI:  "#f59e0b", // amber
+	ThreatRFI:  "#eab308", // yellow
+	ThreatRCE:  "#ef4444", // red
+	ThreatPHP:  "#d946ef", // fuchsia
+	ThreatGA:   "#94a3b8", // slate
+	ThreatXSS:  "#ec4899", // pink
+	ThreatSQLI: "#dc2626", // dark red
+	ThreatSF:   "#8b5cf6", // violet
+	ThreatJAVA: "#14b8a6", // teal
+	ThreatDL:   "#f43f5e", // rose
+	ThreatWSH:  "#a855f7", // purple
 }
 
 var threatLabel = map[ThreatType]string{
-	ThreatOAS: "OAS - On-Access Scan",
-	ThreatMAV: "MAV - Mail Anti Virus",
-	ThreatIDS: "IDS - Intrusion Detection",
-	ThreatVUL: "VUL - Vulnerability Scan",
-	ThreatRMW: "RMW - Ransomware",
+	ThreatME:   "ME - Method Enforcement",
+	ThreatSCAN: "SCAN - Scanner Detection",
+	ThreatPE:   "PE - Protocol Enforcement",
+	ThreatPA:   "PA - Protocol Attack",
+	ThreatMP:   "MP - Multipart Attack",
+	ThreatLFI:  "LFI - Local File Inclusion",
+	ThreatRFI:  "RFI - Remote File Inclusion",
+	ThreatRCE:  "RCE - Remote Code Execution",
+	ThreatPHP:  "PHP - PHP Attack",
+	ThreatGA:   "GA - Generic Attack",
+	ThreatXSS:  "XSS - Cross-Site Scripting",
+	ThreatSQLI: "SQLI - SQL Injection",
+	ThreatSF:   "SF - Session Fixation",
+	ThreatJAVA: "JAVA - Java Attack",
+	ThreatDL:   "DL - Data Leakage",
+	ThreatWSH:  "WSH - Web Shells",
 }
 
 // ─── Data types ───────────────────────────────────────────────────────────────
@@ -88,11 +121,22 @@ type ThreatEvent struct {
 // Stats holds per-type counters for the current day.
 type Stats struct {
 	Total     int64     `json:"total"`
-	OAS       int64     `json:"oas"`
-	MAV       int64     `json:"mav"`
-	IDS       int64     `json:"ids"`
-	VUL       int64     `json:"vul"`
-	RMW       int64     `json:"rmw"`
+	ME        int64     `json:"me"`
+	SCAN      int64     `json:"scan"`
+	PE        int64     `json:"pe"`
+	PA        int64     `json:"pa"`
+	MP        int64     `json:"mp"`
+	LFI       int64     `json:"lfi"`
+	RFI       int64     `json:"rfi"`
+	RCE       int64     `json:"rce"`
+	PHP       int64     `json:"php"`
+	GA        int64     `json:"ga"`
+	XSS       int64     `json:"xss"`
+	SQLI      int64     `json:"sqli"`
+	SF        int64     `json:"sf"`
+	JAVA      int64     `json:"java"`
+	DL        int64     `json:"dl"`
+	WSH       int64     `json:"wsh"`
 	UpdatedAt time.Time `json:"updated_at"`
 }
 
@@ -142,11 +186,22 @@ var (
 
 	// Counters (atomic)
 	cntTotal int64
-	cntOAS   int64
-	cntMAV   int64
-	cntIDS   int64
-	cntVUL   int64
-	cntRMW   int64
+	cntME    int64
+	cntSCAN  int64
+	cntPE    int64
+	cntPA    int64
+	cntMP    int64
+	cntLFI   int64
+	cntRFI   int64
+	cntRCE   int64
+	cntPHP   int64
+	cntGA    int64
+	cntXSS   int64
+	cntSQLI  int64
+	cntSF    int64
+	cntJAVA  int64
+	cntDL    int64
+	cntWSH   int64
 )
 
 // ─── GeoIP ────────────────────────────────────────────────────────────────────
@@ -249,53 +304,128 @@ func isPrivateIP(ip string) bool {
 
 // ─── Threat classification ────────────────────────────────────────────────────
 
-// classifyThreat maps Coraza event fields to one of the 5 threat categories.
+// classifyThreat maps Coraza event fields to one of the 16 OWASP CRS threat categories.
 func classifyThreat(msg, tags, uri, method string) ThreatType {
 	m := strings.ToLower(msg)
 	t := strings.ToLower(tags)
 	u := strings.ToLower(uri)
 
-	// RMW – Ransomware: very high anomaly score or specific file-encryption indicators
-	if strings.Contains(m, "ransomware") || strings.Contains(t, "ransomware") ||
-		strings.Contains(u, ".crypt") || strings.Contains(u, ".encrypted") ||
-		strings.Contains(u, ".locked") || strings.Contains(u, ".wncry") ||
-		strings.Contains(u, "decrypt") {
-		return ThreatRMW
+	// WSH – Web Shells
+	if strings.Contains(t, "attack-webshell") || strings.Contains(t, "webshell") ||
+		strings.Contains(m, "web shell") || strings.Contains(m, "webshell") ||
+		strings.Contains(u, "c99.php") || strings.Contains(u, "r57.php") ||
+		strings.Contains(u, "shell.php") || strings.Contains(u, "cmd.php") {
+		return ThreatWSH
 	}
 
-	// OAS – On-Access Scan: LFI / RFI / path traversal / restricted-file access
-	if strings.Contains(t, "attack-lfi") || strings.Contains(t, "attack-rfi") ||
-		strings.Contains(m, "file access") || strings.Contains(m, "path traversal") ||
-		strings.Contains(m, "restricted file") || strings.Contains(m, "local file") ||
+	// SQLI – SQL Injection
+	if strings.Contains(t, "attack-sqli") || strings.Contains(t, "sql_injection") ||
+		strings.Contains(m, "sql injection") || strings.Contains(m, "sqli") ||
+		strings.Contains(u, "union+select") || strings.Contains(u, "union%20select") ||
+		strings.Contains(u, "select+from") || strings.Contains(u, "1=1") {
+		return ThreatSQLI
+	}
+
+	// XSS – Cross-Site Scripting
+	if strings.Contains(t, "attack-xss") ||
+		strings.Contains(m, "xss") || strings.Contains(m, "cross-site scripting") ||
+		strings.Contains(u, "<script") || strings.Contains(u, "%3cscript") ||
+		strings.Contains(u, "javascript:") || strings.Contains(u, "alert(") {
+		return ThreatXSS
+	}
+
+	// RCE – Remote Code Execution / command injection
+	if strings.Contains(t, "attack-rce") || strings.Contains(t, "attack-injection") ||
+		strings.Contains(m, "remote code") || strings.Contains(m, "rce") ||
+		strings.Contains(m, "command injection") || strings.Contains(m, "code injection") ||
+		strings.Contains(u, "exec(") || strings.Contains(u, "system(") ||
+		strings.Contains(u, "passthru(") || strings.Contains(u, "shell_exec(") {
+		return ThreatRCE
+	}
+
+	// PHP – PHP Attack
+	if strings.Contains(t, "attack-php") || strings.Contains(t, "php_injection") ||
+		strings.Contains(m, "php injection") || strings.Contains(m, "php attack") ||
+		strings.Contains(u, "php://") || strings.Contains(u, "phar://") ||
+		strings.Contains(u, "<?php") || strings.Contains(u, "%3c%3fphp") {
+		return ThreatPHP
+	}
+
+	// JAVA – Java Attack (Log4Shell, JNDI, etc.)
+	if strings.Contains(t, "attack-java") ||
+		strings.Contains(m, "java attack") || strings.Contains(m, "log4j") ||
+		strings.Contains(m, "jndi") || strings.Contains(u, "${jndi") ||
+		strings.Contains(u, "jndi:ldap") || strings.Contains(u, "jndi:rmi") {
+		return ThreatJAVA
+	}
+
+	// SF – Session Fixation
+	if strings.Contains(t, "attack-fixation") || strings.Contains(t, "session_fixation") ||
+		strings.Contains(m, "session fixation") || strings.Contains(m, "session hijack") {
+		return ThreatSF
+	}
+
+	// LFI – Local File Inclusion / path traversal
+	if strings.Contains(t, "attack-lfi") ||
+		strings.Contains(m, "local file") || strings.Contains(m, "path traversal") ||
+		strings.Contains(m, "restricted file") || strings.Contains(m, "file access") ||
 		strings.Contains(u, "../") || strings.Contains(u, "..%2f") ||
 		strings.Contains(u, "etc/passwd") || strings.Contains(u, "etc/shadow") ||
 		strings.Contains(u, ".env") || strings.Contains(u, ".git/") ||
 		strings.Contains(u, "wp-config") || strings.Contains(u, "/proc/") {
-		return ThreatOAS
+		return ThreatLFI
 	}
 
-	// MAV – Mail Anti Virus: SMTP/mail-related attacks
-	if strings.Contains(m, "mail") || strings.Contains(t, "attack-mail") ||
-		strings.Contains(u, "/mail") || strings.Contains(u, "/smtp") ||
-		strings.Contains(u, "/webmail") || strings.Contains(u, "/roundcube") ||
-		strings.Contains(u, "/sendmail") || strings.Contains(u, "/phpmailer") {
-		return ThreatMAV
+	// RFI – Remote File Inclusion
+	if strings.Contains(t, "attack-rfi") ||
+		strings.Contains(m, "remote file") || strings.Contains(m, "file inclusion") ||
+		strings.Contains(u, "=http://") || strings.Contains(u, "=https://") ||
+		strings.Contains(u, "=ftp://") {
+		return ThreatRFI
 	}
 
-	// VUL – Vulnerability Scan: SQL injection, XSS, RCE, command injection
-	if strings.Contains(t, "attack-sqli") || strings.Contains(t, "attack-xss") ||
-		strings.Contains(t, "attack-injection") || strings.Contains(t, "attack-rce") ||
-		strings.Contains(m, "sql injection") || strings.Contains(m, "xss") ||
-		strings.Contains(m, "injection") || strings.Contains(m, "cross-site") ||
-		strings.Contains(m, "command") || strings.Contains(m, "shell") ||
-		strings.Contains(u, "union+select") || strings.Contains(u, "union%20select") ||
-		strings.Contains(u, "<script") || strings.Contains(u, "alert(") ||
-		strings.Contains(u, "exec(") || strings.Contains(u, "system(") {
-		return ThreatVUL
+	// DL – Data Leakage / information disclosure
+	if strings.Contains(t, "attack-disclosure") || strings.Contains(t, "data-leakage") ||
+		strings.Contains(m, "data leakage") || strings.Contains(m, "information disclosure") ||
+		strings.Contains(m, "credit card") || strings.Contains(m, "ssn") {
+		return ThreatDL
 	}
 
-	// IDS – Intrusion Detection (default: protocol violations, scanning, probing)
-	return ThreatIDS
+	// SCAN – Scanner Detection
+	if strings.Contains(t, "attack-reputation-scanner") || strings.Contains(t, "scanner") ||
+		strings.Contains(m, "scanner") || strings.Contains(m, "scan detected") ||
+		strings.Contains(m, "security scanner") || strings.Contains(m, "vulnerability scanner") {
+		return ThreatSCAN
+	}
+
+	// ME – Method Enforcement
+	if strings.Contains(t, "method-not-allowed") || strings.Contains(t, "method_enforcement") ||
+		strings.Contains(m, "method not allowed") || strings.Contains(m, "method enforcement") ||
+		strings.Contains(m, "invalid http method") {
+		return ThreatME
+	}
+
+	// MP – Multipart Attack
+	if strings.Contains(t, "attack-multipart") || strings.Contains(t, "multipart") ||
+		strings.Contains(m, "multipart") || strings.Contains(m, "mime attack") {
+		return ThreatMP
+	}
+
+	// PA – Protocol Attack
+	if strings.Contains(t, "attack-protocol") || strings.Contains(t, "protocol-attack") ||
+		strings.Contains(m, "protocol attack") || strings.Contains(m, "http attack") {
+		return ThreatPA
+	}
+
+	// PE – Protocol Enforcement
+	if strings.Contains(t, "protocol-violation") || strings.Contains(t, "protocol_enforcement") ||
+		strings.Contains(m, "protocol violation") || strings.Contains(m, "invalid protocol") ||
+		strings.Contains(m, "malformed") {
+		return ThreatPE
+	}
+
+	// GA – Generic Attack (default fallback)
+	return ThreatGA
 }
 
 // ─── Coraza audit log parser ──────────────────────────────────────────────────
@@ -475,16 +605,38 @@ func buildAndBroadcast(blk rawBlock) {
 	// Update counters
 	atomic.AddInt64(&cntTotal, 1)
 	switch tt {
-	case ThreatOAS:
-		atomic.AddInt64(&cntOAS, 1)
-	case ThreatMAV:
-		atomic.AddInt64(&cntMAV, 1)
-	case ThreatIDS:
-		atomic.AddInt64(&cntIDS, 1)
-	case ThreatVUL:
-		atomic.AddInt64(&cntVUL, 1)
-	case ThreatRMW:
-		atomic.AddInt64(&cntRMW, 1)
+	case ThreatME:
+		atomic.AddInt64(&cntME, 1)
+	case ThreatSCAN:
+		atomic.AddInt64(&cntSCAN, 1)
+	case ThreatPE:
+		atomic.AddInt64(&cntPE, 1)
+	case ThreatPA:
+		atomic.AddInt64(&cntPA, 1)
+	case ThreatMP:
+		atomic.AddInt64(&cntMP, 1)
+	case ThreatLFI:
+		atomic.AddInt64(&cntLFI, 1)
+	case ThreatRFI:
+		atomic.AddInt64(&cntRFI, 1)
+	case ThreatRCE:
+		atomic.AddInt64(&cntRCE, 1)
+	case ThreatPHP:
+		atomic.AddInt64(&cntPHP, 1)
+	case ThreatGA:
+		atomic.AddInt64(&cntGA, 1)
+	case ThreatXSS:
+		atomic.AddInt64(&cntXSS, 1)
+	case ThreatSQLI:
+		atomic.AddInt64(&cntSQLI, 1)
+	case ThreatSF:
+		atomic.AddInt64(&cntSF, 1)
+	case ThreatJAVA:
+		atomic.AddInt64(&cntJAVA, 1)
+	case ThreatDL:
+		atomic.AddInt64(&cntDL, 1)
+	case ThreatWSH:
+		atomic.AddInt64(&cntWSH, 1)
 	}
 
 	// Push to history ring-buffer
@@ -601,11 +753,22 @@ func tailLog() {
 func broadcastStats() {
 	s := Stats{
 		Total:     atomic.LoadInt64(&cntTotal),
-		OAS:       atomic.LoadInt64(&cntOAS),
-		MAV:       atomic.LoadInt64(&cntMAV),
-		IDS:       atomic.LoadInt64(&cntIDS),
-		VUL:       atomic.LoadInt64(&cntVUL),
-		RMW:       atomic.LoadInt64(&cntRMW),
+		ME:        atomic.LoadInt64(&cntME),
+		SCAN:      atomic.LoadInt64(&cntSCAN),
+		PE:        atomic.LoadInt64(&cntPE),
+		PA:        atomic.LoadInt64(&cntPA),
+		MP:        atomic.LoadInt64(&cntMP),
+		LFI:       atomic.LoadInt64(&cntLFI),
+		RFI:       atomic.LoadInt64(&cntRFI),
+		RCE:       atomic.LoadInt64(&cntRCE),
+		PHP:       atomic.LoadInt64(&cntPHP),
+		GA:        atomic.LoadInt64(&cntGA),
+		XSS:       atomic.LoadInt64(&cntXSS),
+		SQLI:      atomic.LoadInt64(&cntSQLI),
+		SF:        atomic.LoadInt64(&cntSF),
+		JAVA:      atomic.LoadInt64(&cntJAVA),
+		DL:        atomic.LoadInt64(&cntDL),
+		WSH:       atomic.LoadInt64(&cntWSH),
 		UpdatedAt: time.Now(),
 	}
 	data, _ := json.Marshal(s)
@@ -675,9 +838,15 @@ func handleSSE(w http.ResponseWriter, r *http.Request) {
 
 	// Send current stats immediately
 	s := Stats{
-		Total: atomic.LoadInt64(&cntTotal), OAS: atomic.LoadInt64(&cntOAS),
-		MAV: atomic.LoadInt64(&cntMAV), IDS: atomic.LoadInt64(&cntIDS),
-		VUL: atomic.LoadInt64(&cntVUL), RMW: atomic.LoadInt64(&cntRMW),
+		Total: atomic.LoadInt64(&cntTotal),
+		ME:    atomic.LoadInt64(&cntME), SCAN: atomic.LoadInt64(&cntSCAN),
+		PE:    atomic.LoadInt64(&cntPE), PA:   atomic.LoadInt64(&cntPA),
+		MP:    atomic.LoadInt64(&cntMP), LFI:  atomic.LoadInt64(&cntLFI),
+		RFI:   atomic.LoadInt64(&cntRFI), RCE: atomic.LoadInt64(&cntRCE),
+		PHP:   atomic.LoadInt64(&cntPHP), GA:  atomic.LoadInt64(&cntGA),
+		XSS:   atomic.LoadInt64(&cntXSS), SQLI: atomic.LoadInt64(&cntSQLI),
+		SF:    atomic.LoadInt64(&cntSF), JAVA: atomic.LoadInt64(&cntJAVA),
+		DL:    atomic.LoadInt64(&cntDL), WSH:  atomic.LoadInt64(&cntWSH),
 		UpdatedAt: time.Now(),
 	}
 	if d, err := json.Marshal(s); err == nil {
@@ -722,9 +891,15 @@ func handleSSE(w http.ResponseWriter, r *http.Request) {
 func handleStats(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	s := Stats{
-		Total: atomic.LoadInt64(&cntTotal), OAS: atomic.LoadInt64(&cntOAS),
-		MAV: atomic.LoadInt64(&cntMAV), IDS: atomic.LoadInt64(&cntIDS),
-		VUL: atomic.LoadInt64(&cntVUL), RMW: atomic.LoadInt64(&cntRMW),
+		Total: atomic.LoadInt64(&cntTotal),
+		ME:    atomic.LoadInt64(&cntME), SCAN: atomic.LoadInt64(&cntSCAN),
+		PE:    atomic.LoadInt64(&cntPE), PA:   atomic.LoadInt64(&cntPA),
+		MP:    atomic.LoadInt64(&cntMP), LFI:  atomic.LoadInt64(&cntLFI),
+		RFI:   atomic.LoadInt64(&cntRFI), RCE: atomic.LoadInt64(&cntRCE),
+		PHP:   atomic.LoadInt64(&cntPHP), GA:  atomic.LoadInt64(&cntGA),
+		XSS:   atomic.LoadInt64(&cntXSS), SQLI: atomic.LoadInt64(&cntSQLI),
+		SF:    atomic.LoadInt64(&cntSF), JAVA: atomic.LoadInt64(&cntJAVA),
+		DL:    atomic.LoadInt64(&cntDL), WSH:  atomic.LoadInt64(&cntWSH),
 		UpdatedAt: time.Now(),
 	}
 	json.NewEncoder(w).Encode(s)
@@ -744,6 +919,14 @@ func handleIndex(w http.ResponseWriter, r *http.Request) {
 func main() {
 	log.SetFlags(log.Ldate | log.Ltime | log.Lshortfile)
 	log.Printf("[cybermap] WAFX CyberThreat Live Map starting on %s", listenAddr)
+
+	// Force WIB (UTC+7) for all timestamp parsing and formatting
+	wibLoc, err := time.LoadLocation("Asia/Jakarta")
+	if err != nil {
+		// Fallback: construct UTC+7 fixed zone if tzdata is unavailable
+		wibLoc = time.FixedZone("WIB", 7*60*60)
+	}
+	time.Local = wibLoc
 
 	// Validate geo coords are reasonable – just a sanity check
 	_ = math.Abs(targetLat)

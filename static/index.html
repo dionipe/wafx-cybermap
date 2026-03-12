@@ -24,11 +24,22 @@
   --dim:      rgba(255,255,255,0.45);
   --font-mono: 'Share Tech Mono', monospace;
   --font-ui:   'Rajdhani', sans-serif;
-  --oas:  #f59e0b;
-  --mav:  #3b82f6;
-  --ids:  #10b981;
-  --vul:  #ef4444;
-  --rmw:  #8b5cf6;
+  --me:   #f97316;
+  --scan: #22c55e;
+  --pe:   #06b6d4;
+  --pa:   #3b82f6;
+  --mp:   #84cc16;
+  --lfi:  #f59e0b;
+  --rfi:  #eab308;
+  --rce:  #ef4444;
+  --php:  #d946ef;
+  --ga:   #94a3b8;
+  --xss:  #ec4899;
+  --sqli: #dc2626;
+  --sf:   #8b5cf6;
+  --java: #14b8a6;
+  --dl:   #f43f5e;
+  --wsh:  #a855f7;
 }
 
 html, body {
@@ -138,7 +149,9 @@ html, body {
   border-radius: 10px;
   padding: 14px 18px;
   z-index: 700;
-  min-width: 210px;
+  min-width: 240px;
+  max-height: calc(100vh - 100px);
+  overflow-y: auto;
   backdrop-filter: blur(10px);
   box-shadow: 0 4px 32px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.04);
 }
@@ -229,6 +242,28 @@ html, body {
 .fi-ip   { font-family: var(--font-mono); font-size: 10px; color: #c9d4e8; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .fi-country { font-size: 11px; color: var(--dim); text-align: right; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
+/* ── Domain filter bar ──────────────────────────────── */
+#domain-bar {
+  display: flex; flex-wrap: nowrap; gap: 5px;
+  padding: 7px 10px;
+  border-bottom: 1px solid var(--border);
+  overflow-x: auto;
+  flex-shrink: 0;
+  scrollbar-width: none;
+}
+#domain-bar::-webkit-scrollbar { display: none; }
+
+.df-btn {
+  font-family: var(--font-mono); font-size: 9px;
+  padding: 3px 8px; border-radius: 4px;
+  border: 1px solid rgba(0,212,255,0.2);
+  background: transparent; color: var(--dim);
+  cursor: pointer; transition: all 0.18s; white-space: nowrap;
+  flex-shrink: 0;
+}
+.df-btn:hover  { border-color: var(--accent); color: var(--accent); background: rgba(0,212,255,0.07); }
+.df-btn.active { background: rgba(0,212,255,0.15); border-color: var(--accent); color: var(--accent); }
+
 /* ── Target marker pulse ───────────────────────────── */
 .target-pulse {
   width: 18px; height: 18px; border-radius: 50%;
@@ -303,44 +338,122 @@ html, body {
   <div class="sp-header">&#9632; Real-Time Detection</div>
 
   <div class="sp-row">
-    <span class="sp-badge" style="background:rgba(245,158,11,0.18);color:#f59e0b;border:1px solid rgba(245,158,11,0.3)">OAS</span>
-    <span class="sp-name">On-Access Scan</span>
-    <span class="sp-count" id="cnt-oas">0</span>
+    <span class="sp-badge" style="background:rgba(249,115,22,0.18);color:#f97316;border:1px solid rgba(249,115,22,0.3)">ME</span>
+    <span class="sp-name">Method Enforcement</span>
+    <span class="sp-count" id="cnt-me">0</span>
   </div>
-  <div class="sp-bar-wrap"><div class="sp-bar" id="bar-oas" style="background:#f59e0b;width:0%"></div></div>
+  <div class="sp-bar-wrap"><div class="sp-bar" id="bar-me" style="background:#f97316;width:0%"></div></div>
 
   <div class="sp-row">
-    <span class="sp-badge" style="background:rgba(59,130,246,0.18);color:#3b82f6;border:1px solid rgba(59,130,246,0.3)">MAV</span>
-    <span class="sp-name">Mail Anti Virus</span>
-    <span class="sp-count" id="cnt-mav">0</span>
+    <span class="sp-badge" style="background:rgba(34,197,94,0.18);color:#22c55e;border:1px solid rgba(34,197,94,0.3)">SCAN</span>
+    <span class="sp-name">Scanner Detection</span>
+    <span class="sp-count" id="cnt-scan">0</span>
   </div>
-  <div class="sp-bar-wrap"><div class="sp-bar" id="bar-mav" style="background:#3b82f6;width:0%"></div></div>
+  <div class="sp-bar-wrap"><div class="sp-bar" id="bar-scan" style="background:#22c55e;width:0%"></div></div>
 
   <div class="sp-row">
-    <span class="sp-badge" style="background:rgba(16,185,129,0.18);color:#10b981;border:1px solid rgba(16,185,129,0.3)">IDS</span>
-    <span class="sp-name">Intrusion Detection</span>
-    <span class="sp-count" id="cnt-ids">0</span>
+    <span class="sp-badge" style="background:rgba(6,182,212,0.18);color:#06b6d4;border:1px solid rgba(6,182,212,0.3)">PE</span>
+    <span class="sp-name">Protocol Enforcement</span>
+    <span class="sp-count" id="cnt-pe">0</span>
   </div>
-  <div class="sp-bar-wrap"><div class="sp-bar" id="bar-ids" style="background:#10b981;width:0%"></div></div>
+  <div class="sp-bar-wrap"><div class="sp-bar" id="bar-pe" style="background:#06b6d4;width:0%"></div></div>
 
   <div class="sp-row">
-    <span class="sp-badge" style="background:rgba(239,68,68,0.18);color:#ef4444;border:1px solid rgba(239,68,68,0.3)">VUL</span>
-    <span class="sp-name">Vulnerability Scan</span>
-    <span class="sp-count" id="cnt-vul">0</span>
+    <span class="sp-badge" style="background:rgba(59,130,246,0.18);color:#3b82f6;border:1px solid rgba(59,130,246,0.3)">PA</span>
+    <span class="sp-name">Protocol Attack</span>
+    <span class="sp-count" id="cnt-pa">0</span>
   </div>
-  <div class="sp-bar-wrap"><div class="sp-bar" id="bar-vul" style="background:#ef4444;width:0%"></div></div>
+  <div class="sp-bar-wrap"><div class="sp-bar" id="bar-pa" style="background:#3b82f6;width:0%"></div></div>
 
   <div class="sp-row">
-    <span class="sp-badge" style="background:rgba(139,92,246,0.18);color:#8b5cf6;border:1px solid rgba(139,92,246,0.3)">RMW</span>
-    <span class="sp-name">Ransomware</span>
-    <span class="sp-count" id="cnt-rmw">0</span>
+    <span class="sp-badge" style="background:rgba(132,204,22,0.18);color:#84cc16;border:1px solid rgba(132,204,22,0.3)">MP</span>
+    <span class="sp-name">Multipart Attack</span>
+    <span class="sp-count" id="cnt-mp">0</span>
   </div>
-  <div class="sp-bar-wrap"><div class="sp-bar" id="bar-rmw" style="background:#8b5cf6;width:0%"></div></div>
+  <div class="sp-bar-wrap"><div class="sp-bar" id="bar-mp" style="background:#84cc16;width:0%"></div></div>
+
+  <div class="sp-row">
+    <span class="sp-badge" style="background:rgba(245,158,11,0.18);color:#f59e0b;border:1px solid rgba(245,158,11,0.3)">LFI</span>
+    <span class="sp-name">Local File Inclusion</span>
+    <span class="sp-count" id="cnt-lfi">0</span>
+  </div>
+  <div class="sp-bar-wrap"><div class="sp-bar" id="bar-lfi" style="background:#f59e0b;width:0%"></div></div>
+
+  <div class="sp-row">
+    <span class="sp-badge" style="background:rgba(234,179,8,0.18);color:#eab308;border:1px solid rgba(234,179,8,0.3)">RFI</span>
+    <span class="sp-name">Remote File Inclusion</span>
+    <span class="sp-count" id="cnt-rfi">0</span>
+  </div>
+  <div class="sp-bar-wrap"><div class="sp-bar" id="bar-rfi" style="background:#eab308;width:0%"></div></div>
+
+  <div class="sp-row">
+    <span class="sp-badge" style="background:rgba(239,68,68,0.18);color:#ef4444;border:1px solid rgba(239,68,68,0.3)">RCE</span>
+    <span class="sp-name">Remote Code Execution</span>
+    <span class="sp-count" id="cnt-rce">0</span>
+  </div>
+  <div class="sp-bar-wrap"><div class="sp-bar" id="bar-rce" style="background:#ef4444;width:0%"></div></div>
+
+  <div class="sp-row">
+    <span class="sp-badge" style="background:rgba(217,70,239,0.18);color:#d946ef;border:1px solid rgba(217,70,239,0.3)">PHP</span>
+    <span class="sp-name">PHP Attack</span>
+    <span class="sp-count" id="cnt-php">0</span>
+  </div>
+  <div class="sp-bar-wrap"><div class="sp-bar" id="bar-php" style="background:#d946ef;width:0%"></div></div>
+
+  <div class="sp-row">
+    <span class="sp-badge" style="background:rgba(148,163,184,0.18);color:#94a3b8;border:1px solid rgba(148,163,184,0.3)">GA</span>
+    <span class="sp-name">Generic Attack</span>
+    <span class="sp-count" id="cnt-ga">0</span>
+  </div>
+  <div class="sp-bar-wrap"><div class="sp-bar" id="bar-ga" style="background:#94a3b8;width:0%"></div></div>
+
+  <div class="sp-row">
+    <span class="sp-badge" style="background:rgba(236,72,153,0.18);color:#ec4899;border:1px solid rgba(236,72,153,0.3)">XSS</span>
+    <span class="sp-name">Cross-Site Scripting</span>
+    <span class="sp-count" id="cnt-xss">0</span>
+  </div>
+  <div class="sp-bar-wrap"><div class="sp-bar" id="bar-xss" style="background:#ec4899;width:0%"></div></div>
+
+  <div class="sp-row">
+    <span class="sp-badge" style="background:rgba(220,38,38,0.18);color:#dc2626;border:1px solid rgba(220,38,38,0.3)">SQLI</span>
+    <span class="sp-name">SQL Injection</span>
+    <span class="sp-count" id="cnt-sqli">0</span>
+  </div>
+  <div class="sp-bar-wrap"><div class="sp-bar" id="bar-sqli" style="background:#dc2626;width:0%"></div></div>
+
+  <div class="sp-row">
+    <span class="sp-badge" style="background:rgba(139,92,246,0.18);color:#8b5cf6;border:1px solid rgba(139,92,246,0.3)">SF</span>
+    <span class="sp-name">Session Fixation</span>
+    <span class="sp-count" id="cnt-sf">0</span>
+  </div>
+  <div class="sp-bar-wrap"><div class="sp-bar" id="bar-sf" style="background:#8b5cf6;width:0%"></div></div>
+
+  <div class="sp-row">
+    <span class="sp-badge" style="background:rgba(20,184,166,0.18);color:#14b8a6;border:1px solid rgba(20,184,166,0.3)">JAVA</span>
+    <span class="sp-name">Java Attack</span>
+    <span class="sp-count" id="cnt-java">0</span>
+  </div>
+  <div class="sp-bar-wrap"><div class="sp-bar" id="bar-java" style="background:#14b8a6;width:0%"></div></div>
+
+  <div class="sp-row">
+    <span class="sp-badge" style="background:rgba(244,63,94,0.18);color:#f43f5e;border:1px solid rgba(244,63,94,0.3)">DL</span>
+    <span class="sp-name">Data Leakage</span>
+    <span class="sp-count" id="cnt-dl">0</span>
+  </div>
+  <div class="sp-bar-wrap"><div class="sp-bar" id="bar-dl" style="background:#f43f5e;width:0%"></div></div>
+
+  <div class="sp-row">
+    <span class="sp-badge" style="background:rgba(168,85,247,0.18);color:#a855f7;border:1px solid rgba(168,85,247,0.3)">WSH</span>
+    <span class="sp-name">Web Shells</span>
+    <span class="sp-count" id="cnt-wsh">0</span>
+  </div>
+  <div class="sp-bar-wrap"><div class="sp-bar" id="bar-wsh" style="background:#a855f7;width:0%"></div></div>
 </div>
 
 <!-- ─── Feed Panel ─────────────────────────────────────────────── -->
 <div id="feed-panel">
   <div class="fp-header">&#9632; Global Attack Feed</div>
+  <div id="domain-bar"><button class="df-btn active" id="df-all">All</button></div>
   <div id="feed-list"></div>
 </div>
 
@@ -356,11 +469,22 @@ const MAX_ARCS   = 80;
 const MAX_FEED   = 60;
 
 const TYPE_COLOR = {
-  OAS: '#f59e0b',
-  MAV: '#3b82f6',
-  IDS: '#10b981',
-  VUL: '#ef4444',
-  RMW: '#8b5cf6',
+  ME:   '#f97316',
+  SCAN: '#22c55e',
+  PE:   '#06b6d4',
+  PA:   '#3b82f6',
+  MP:   '#84cc16',
+  LFI:  '#f59e0b',
+  RFI:  '#eab308',
+  RCE:  '#ef4444',
+  PHP:  '#d946ef',
+  GA:   '#94a3b8',
+  XSS:  '#ec4899',
+  SQLI: '#dc2626',
+  SF:   '#8b5cf6',
+  JAVA: '#14b8a6',
+  DL:   '#f43f5e',
+  WSH:  '#a855f7',
 };
 
 // ── Map setup ──────────────────────────────────────────────────────
@@ -523,35 +647,71 @@ drawArcs();
 // Display is driven entirely by incrementStat() so counters count up
 // one-by-one as each event animates. Server stats events are only used
 // to sync total after reconnect / during live phase.
-let stats = { total: 0, oas: 0, mav: 0, ids: 0, vul: 0, rmw: 0 };
+let stats = { total: 0, me: 0, scan: 0, pe: 0, pa: 0, mp: 0, lfi: 0, rfi: 0, rce: 0, php: 0, ga: 0, xss: 0, sqli: 0, sf: 0, java: 0, dl: 0, wsh: 0 };
 
 function renderStats() {
   setEl('cnt-total', fmtNum(stats.total));
-  setEl('cnt-oas',   fmtNum(stats.oas));
-  setEl('cnt-mav',   fmtNum(stats.mav));
-  setEl('cnt-ids',   fmtNum(stats.ids));
-  setEl('cnt-vul',   fmtNum(stats.vul));
-  setEl('cnt-rmw',   fmtNum(stats.rmw));
-  const mx = Math.max(stats.oas, stats.mav, stats.ids, stats.vul, stats.rmw, 1);
-  setWidth('bar-oas', stats.oas / mx * 100);
-  setWidth('bar-mav', stats.mav / mx * 100);
-  setWidth('bar-ids', stats.ids / mx * 100);
-  setWidth('bar-vul', stats.vul / mx * 100);
-  setWidth('bar-rmw', stats.rmw / mx * 100);
+  setEl('cnt-me',   fmtNum(stats.me));
+  setEl('cnt-scan', fmtNum(stats.scan));
+  setEl('cnt-pe',   fmtNum(stats.pe));
+  setEl('cnt-pa',   fmtNum(stats.pa));
+  setEl('cnt-mp',   fmtNum(stats.mp));
+  setEl('cnt-lfi',  fmtNum(stats.lfi));
+  setEl('cnt-rfi',  fmtNum(stats.rfi));
+  setEl('cnt-rce',  fmtNum(stats.rce));
+  setEl('cnt-php',  fmtNum(stats.php));
+  setEl('cnt-ga',   fmtNum(stats.ga));
+  setEl('cnt-xss',  fmtNum(stats.xss));
+  setEl('cnt-sqli', fmtNum(stats.sqli));
+  setEl('cnt-sf',   fmtNum(stats.sf));
+  setEl('cnt-java', fmtNum(stats.java));
+  setEl('cnt-dl',   fmtNum(stats.dl));
+  setEl('cnt-wsh',  fmtNum(stats.wsh));
+  const mx = Math.max(stats.me, stats.scan, stats.pe, stats.pa, stats.mp,
+                      stats.lfi, stats.rfi, stats.rce, stats.php, stats.ga,
+                      stats.xss, stats.sqli, stats.sf, stats.java, stats.dl, stats.wsh, 1);
+  setWidth('bar-me',   stats.me   / mx * 100);
+  setWidth('bar-scan', stats.scan / mx * 100);
+  setWidth('bar-pe',   stats.pe   / mx * 100);
+  setWidth('bar-pa',   stats.pa   / mx * 100);
+  setWidth('bar-mp',   stats.mp   / mx * 100);
+  setWidth('bar-lfi',  stats.lfi  / mx * 100);
+  setWidth('bar-rfi',  stats.rfi  / mx * 100);
+  setWidth('bar-rce',  stats.rce  / mx * 100);
+  setWidth('bar-php',  stats.php  / mx * 100);
+  setWidth('bar-ga',   stats.ga   / mx * 100);
+  setWidth('bar-xss',  stats.xss  / mx * 100);
+  setWidth('bar-sqli', stats.sqli / mx * 100);
+  setWidth('bar-sf',   stats.sf   / mx * 100);
+  setWidth('bar-java', stats.java / mx * 100);
+  setWidth('bar-dl',   stats.dl   / mx * 100);
+  setWidth('bar-wsh',  stats.wsh  / mx * 100);
 }
 
 function incrementStat(type) {
   stats.total++;
-  if (type === 'OAS') stats.oas++;
-  else if (type === 'MAV') stats.mav++;
-  else if (type === 'IDS') stats.ids++;
-  else if (type === 'VUL') stats.vul++;
-  else if (type === 'RMW') stats.rmw++;
+  if      (type === 'ME')   stats.me++;
+  else if (type === 'SCAN') stats.scan++;
+  else if (type === 'PE')   stats.pe++;
+  else if (type === 'PA')   stats.pa++;
+  else if (type === 'MP')   stats.mp++;
+  else if (type === 'LFI')  stats.lfi++;
+  else if (type === 'RFI')  stats.rfi++;
+  else if (type === 'RCE')  stats.rce++;
+  else if (type === 'PHP')  stats.php++;
+  else if (type === 'GA')   stats.ga++;
+  else if (type === 'XSS')  stats.xss++;
+  else if (type === 'SQLI') stats.sqli++;
+  else if (type === 'SF')   stats.sf++;
+  else if (type === 'JAVA') stats.java++;
+  else if (type === 'DL')   stats.dl++;
+  else if (type === 'WSH')  stats.wsh++;
   renderStats();
 }
 
 // ── Feed ───────────────────────────────────────────────────────────
-const feedList = document.getElementById('feed-list');
+const feedList  = document.getElementById('feed-list');
+const domainBar = document.getElementById('domain-bar');
 
 function addFeedItem(ev) {
   const color = ev.color || '#00d4ff';
@@ -567,6 +727,88 @@ function addFeedItem(ev) {
     feedList.removeChild(feedList.lastElementChild);
   }
 }
+
+// ── Domain filter ────────────────────────────────────────────────────
+const domainCounts = {};     // { domain: count }
+let   selectedDomain = null;
+const allEvents      = [];   // full event log (capped at MAX_ALL_EVENTS)
+const MAX_ALL_EVENTS = 1000;
+
+function safeDomId(d) {
+  return 'df-' + d.replace(/[^a-z0-9]/gi, '_');
+}
+
+function trackDomain(domain) {
+  if (!domain) return;
+  const isNew = !domainCounts[domain];
+  domainCounts[domain] = (domainCounts[domain] || 0) + 1;
+  if (isNew) {
+    // Add new button
+    const btn = document.createElement('button');
+    btn.className = 'df-btn';
+    btn.id = safeDomId(domain);
+    btn.dataset.domain = domain;
+    btn.textContent = domain + ' (1)';
+    btn.onclick = () => setDomainFilter(domain);
+    domainBar.appendChild(btn);
+  } else {
+    const btn = document.getElementById(safeDomId(domain));
+    if (btn) btn.textContent = domain + ' (' + domainCounts[domain] + ')';
+  }
+}
+
+function setDomainFilter(domain) {
+  selectedDomain = domain;
+  // Update active state on all buttons
+  domainBar.querySelectorAll('.df-btn').forEach(b => {
+    const bd = b.dataset.domain || null;
+    b.classList.toggle('active', bd === selectedDomain);
+  });
+  rebuildDisplay();
+}
+
+function rebuildDisplay() {
+  // Reset and recount stats from stored events
+  stats = { total: 0, me: 0, scan: 0, pe: 0, pa: 0, mp: 0,
+            lfi: 0, rfi: 0, rce: 0, php: 0, ga: 0, xss: 0,
+            sqli: 0, sf: 0, java: 0, dl: 0, wsh: 0 };
+  feedList.innerHTML = '';
+
+  const filtered = selectedDomain
+    ? allEvents.filter(ev => ev.domain === selectedDomain)
+    : allEvents;
+
+  // Count stats for all filtered events
+  filtered.forEach(ev => {
+    stats.total++;
+    const t = ev.type;
+    if      (t === 'ME')   stats.me++;
+    else if (t === 'SCAN') stats.scan++;
+    else if (t === 'PE')   stats.pe++;
+    else if (t === 'PA')   stats.pa++;
+    else if (t === 'MP')   stats.mp++;
+    else if (t === 'LFI')  stats.lfi++;
+    else if (t === 'RFI')  stats.rfi++;
+    else if (t === 'RCE')  stats.rce++;
+    else if (t === 'PHP')  stats.php++;
+    else if (t === 'GA')   stats.ga++;
+    else if (t === 'XSS')  stats.xss++;
+    else if (t === 'SQLI') stats.sqli++;
+    else if (t === 'SF')   stats.sf++;
+    else if (t === 'JAVA') stats.java++;
+    else if (t === 'DL')   stats.dl++;
+    else if (t === 'WSH')  stats.wsh++;
+  });
+
+  // Populate feed (newest first, capped at MAX_FEED)
+  const feedSlice = filtered.slice(-MAX_FEED);
+  for (let i = feedSlice.length - 1; i >= 0; i--) addFeedItem(feedSlice[i]);
+
+  renderStats();
+}
+
+// Initialise the "All" button handler
+document.getElementById('df-all').onclick = () => setDomainFilter(null);
 
 // ── Playback engine ────────────────────────────────────────────────
 // phase: 'collect' → 'play' → 'live' → loop ('play' again via loop)
@@ -662,6 +904,13 @@ function startLoop() {
 
 // Show arc + feed item + increment counter  (first-time display)
 function displayFull(ev) {
+  // Store in full event log
+  allEvents.push(ev);
+  if (allEvents.length > MAX_ALL_EVENTS) allEvents.shift();
+  // Track domain for filter UI
+  if (ev.domain) trackDomain(ev.domain);
+  // Skip display if doesn't match active domain filter
+  if (selectedDomain && ev.domain !== selectedDomain) return;
   addArc(ev);
   addFeedItem(ev);
   incrementStat(ev.type);
@@ -669,6 +918,7 @@ function displayFull(ev) {
 
 // Show arc + increment counter only  (loop re-play)
 function displayArcOnly(ev) {
+  if (selectedDomain && ev.domain !== selectedDomain) return;
   addArc(ev);
   incrementStat(ev.type);
 }
@@ -701,8 +951,9 @@ connectSSE();
 // ── Clock ──────────────────────────────────────────────────────────
 function tickClock() {
   const now = new Date();
-  setEl('clock-time', pad2(now.getHours()) + ':' + pad2(now.getMinutes()) + ':' + pad2(now.getSeconds()));
-  setEl('clock-date', now.toLocaleDateString('en-US', { weekday:'short', day:'2-digit', month:'short', year:'numeric' }));
+  const opt = { timeZone: 'Asia/Jakarta', hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false };
+  setEl('clock-time', now.toLocaleTimeString('en-GB', opt));
+  setEl('clock-date', now.toLocaleDateString('en-US', { timeZone: 'Asia/Jakarta', weekday:'short', day:'2-digit', month:'short', year:'numeric' }));
 }
 tickClock();
 setInterval(tickClock, 1000);

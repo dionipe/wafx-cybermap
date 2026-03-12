@@ -1,0 +1,17 @@
+[Unit]
+Description=WAFX CyberThreat Live Map Debian
+After=network.target nginx.service
+
+[Service]
+Type=simple
+User=root
+WorkingDirectory=/opt/wafx-cybermap
+ExecStart=/opt/wafx-cybermap/wafx-cybermap
+Restart=on-failure
+RestartSec=5s
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=wafx-cybermap
+
+[Install]
+WantedBy=multi-user.target
