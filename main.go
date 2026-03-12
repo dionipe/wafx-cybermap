@@ -31,7 +31,7 @@ const (
 	geoRateDelay = 1400 * time.Millisecond // ~42 req/min
 
 	// How many events to keep in the history ring-buffer (sent to new clients)
-	historySize = 500
+	historySize = 1000
 )
 
 // ─── Threat types ─────────────────────────────────────────────────────────────
