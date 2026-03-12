@@ -647,7 +647,9 @@ drawArcs();
 // Display is driven entirely by incrementStat() so counters count up
 // one-by-one as each event animates. Server stats events are only used
 // to sync total after reconnect / during live phase.
-let stats = { total: 0, me: 0, scan: 0, pe: 0, pa: 0, mp: 0, lfi: 0, rfi: 0, rce: 0, php: 0, ga: 0, xss: 0, sqli: 0, sf: 0, java: 0, dl: 0, wsh: 0 };
+// serverStats = source of truth from server (updated by every 'stats' SSE event)
+let serverStats = { total: 0, me: 0, scan: 0, pe: 0, pa: 0, mp: 0, lfi: 0, rfi: 0, rce: 0, php: 0, ga: 0, xss: 0, sqli: 0, sf: 0, java: 0, dl: 0, wsh: 0 };
+let stats       = { total: 0, me: 0, scan: 0, pe: 0, pa: 0, mp: 0, lfi: 0, rfi: 0, rce: 0, php: 0, ga: 0, xss: 0, sqli: 0, sf: 0, java: 0, dl: 0, wsh: 0 };
 
 function renderStats() {
   setEl('cnt-total', fmtNum(stats.total));
@@ -768,17 +770,22 @@ function setDomainFilter(domain) {
 }
 
 function rebuildDisplay() {
-  // Reset and recount stats from stored events
+  feedList.innerHTML = '';
+
+  if (!selectedDomain) {
+    // All-domain view: restore real server totals
+    Object.assign(stats, serverStats);
+    const feedSlice = allEvents.slice(-MAX_FEED);
+    for (let i = feedSlice.length - 1; i >= 0; i--) addFeedItem(feedSlice[i]);
+    renderStats();
+    return;
+  }
+
+  // Domain-filtered view: recount from local event buffer
   stats = { total: 0, me: 0, scan: 0, pe: 0, pa: 0, mp: 0,
             lfi: 0, rfi: 0, rce: 0, php: 0, ga: 0, xss: 0,
             sqli: 0, sf: 0, java: 0, dl: 0, wsh: 0 };
-  feedList.innerHTML = '';
-
-  const filtered = selectedDomain
-    ? allEvents.filter(ev => ev.domain === selectedDomain)
-    : allEvents;
-
-  // Count stats for all filtered events
+  const filtered = allEvents.filter(ev => ev.domain === selectedDomain);
   filtered.forEach(ev => {
     stats.total++;
     const t = ev.type;
@@ -799,11 +806,8 @@ function rebuildDisplay() {
     else if (t === 'DL')   stats.dl++;
     else if (t === 'WSH')  stats.wsh++;
   });
-
-  // Populate feed (newest first, capped at MAX_FEED)
   const feedSlice = filtered.slice(-MAX_FEED);
   for (let i = feedSlice.length - 1; i >= 0; i--) addFeedItem(feedSlice[i]);
-
   renderStats();
 }
 
@@ -876,9 +880,9 @@ function tick() {
       // Animate one event
       const ev = historyBuf[playIdx++];
       if (phase === 'play') {
-        displayFull(ev);       // arc + feed + counter
+        displayFull(ev, true);  // arc + feed only, stats already in server total
       } else {
-        displayArcOnly(ev);    // arc + counter (no feed duplicate during loop)
+        displayArcOnly(ev);     // arc only during loop re-play
       }
       playTimer = setTimeout(tick, EVENT_DELAY);
     } else {
@@ -902,8 +906,9 @@ function startLoop() {
   tick();
 }
 
-// Show arc + feed item + increment counter  (first-time display)
-function displayFull(ev) {
+// Show arc + feed item + (optionally) increment counter
+// skipStat=true during history playback – server stats already include those events
+function displayFull(ev, skipStat = false) {
   // Store in full event log
   allEvents.push(ev);
   if (allEvents.length > MAX_ALL_EVENTS) allEvents.shift();
@@ -913,14 +918,13 @@ function displayFull(ev) {
   if (selectedDomain && ev.domain !== selectedDomain) return;
   addArc(ev);
   addFeedItem(ev);
-  incrementStat(ev.type);
+  if (!skipStat) incrementStat(ev.type);
 }
 
-// Show arc + increment counter only  (loop re-play)
+// Show arc only during loop re-play (no stat change)
 function displayArcOnly(ev) {
   if (selectedDomain && ev.domain !== selectedDomain) return;
   addArc(ev);
-  incrementStat(ev.type);
 }
 
 // ── SSE connection ─────────────────────────────────────────────────
@@ -929,9 +933,27 @@ let sseRetry = 1000;
 function connectSSE() {
   const sse = new EventSource('/api/events');
 
-  // Ignore the initial stats snapshot – counters are driven by animation.
-  // Only accept stats updates once we are in live phase (no rewrite needed).
-  sse.addEventListener('stats', () => {});
+  // Accept stats events to keep serverStats in sync with real server totals.
+  // On first receive: immediately populate display so counters never start from 0.
+  sse.addEventListener('stats', e => {
+    try {
+      const s = JSON.parse(e.data);
+      serverStats.total = s.total || 0;
+      serverStats.me    = s.me    || 0; serverStats.scan = s.scan || 0;
+      serverStats.pe    = s.pe    || 0; serverStats.pa   = s.pa   || 0;
+      serverStats.mp    = s.mp    || 0; serverStats.lfi  = s.lfi  || 0;
+      serverStats.rfi   = s.rfi   || 0; serverStats.rce  = s.rce  || 0;
+      serverStats.php   = s.php   || 0; serverStats.ga   = s.ga   || 0;
+      serverStats.xss   = s.xss   || 0; serverStats.sqli = s.sqli || 0;
+      serverStats.sf    = s.sf    || 0; serverStats.java = s.java || 0;
+      serverStats.dl    = s.dl    || 0; serverStats.wsh  = s.wsh  || 0;
+      // Sync display only when not showing a domain-filtered view
+      if (!selectedDomain) {
+        Object.assign(stats, serverStats);
+        renderStats();
+      }
+    } catch(_) {}
+  });
 
   sse.addEventListener('threat', e => {
     try { onEvent(JSON.parse(e.data)); } catch(_) {}

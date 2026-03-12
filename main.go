@@ -30,8 +30,8 @@ const (
 	// GeoIP rate limit: ip-api.com free tier = 45 req/min
 	geoRateDelay = 1400 * time.Millisecond // ~42 req/min
 
-	// How many events to keep in the history ring-buffer
-	historySize = 150
+	// How many events to keep in the history ring-buffer (sent to new clients)
+	historySize = 500
 )
 
 // ─── Threat types ─────────────────────────────────────────────────────────────
@@ -655,13 +655,42 @@ func buildAndBroadcast(blk rawBlock) {
 // ─── Log monitor ─────────────────────────────────────────────────────────────
 
 func monitorLog() {
-	// Seed from backup log (yesterday / overnight rotation)
-	seedFromFile(auditLogBakPath, 100)
-	// Seed from current log
-	seedFromFile(auditLogPath, 50)
+	// Seed ALL of today's events from the current log (since midnight WIB)
+	seedTodayFromFile(auditLogPath)
+
+	// Seed a few recent events from the backup log for visual continuity
+	// (covers the brief window around midnight log rotation)
+	seedFromFile(auditLogBakPath, 50)
 
 	// Now tail the current log for new events
 	tailLog()
+}
+
+// seedTodayFromFile reads ALL events from today (since midnight WIB) from the
+// given log file and broadcasts them so counters reflect the actual daily total.
+func seedTodayFromFile(path string) {
+	data, err := os.ReadFile(path)
+	if err != nil {
+		return
+	}
+	// Parse everything, no limit
+	blocks := parseAuditLog(string(data), 0)
+
+	// Keep only events from today (>= midnight WIB)
+	now := time.Now()
+	todayMidnight := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, time.Local)
+	var todayBlocks []rawBlock
+	for _, blk := range blocks {
+		if !blk.timestamp.Before(todayMidnight) {
+			todayBlocks = append(todayBlocks, blk)
+		}
+	}
+	log.Printf("[cybermap] Seeding %d events from today in %s", len(todayBlocks), path)
+
+	// todayBlocks is newest-first (from parseAuditLog); broadcast oldest first
+	for i := len(todayBlocks) - 1; i >= 0; i-- {
+		buildAndBroadcast(todayBlocks[i])
+	}
 }
 
 // seedFromFile reads up to `limit` recent events from a log file and
